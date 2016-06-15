@@ -2,6 +2,7 @@ import React from 'react'
 import { render } from 'react-dom'
 import { Router, Route, browserHistory } from 'react-router'
 import Rebase from 're-base'
+import CSSTransitionGroup from 'react-addons-css-transition-group'
 
 import helpers from './helpers.js'
 const base = Rebase.createClass('https://fk-react4beginners.firebaseio.com/')
@@ -43,6 +44,15 @@ class App extends React.Component {
     this.setState({ fishes })
   }
 
+  removeFish (key) {
+    if (!window.confirm('Are you sure?')) {
+      return
+    }
+
+    this.state.fishes[key] = null
+    this.setState({ fishes: this.state.fishes })
+  }
+
   loadSamples () {
     this.setState({
       fishes: require('./sample-fishes')
@@ -50,9 +60,13 @@ class App extends React.Component {
   }
 
   addToOrder (index) {
-    let order = this.state.order
-    order[index] = order[index] + 1 || 1
-    this.setState({ order })
+    this.state.order[index] = this.state.order[index] + 1 || 1
+    this.setState({ order: this.state.order })
+  }
+
+  removeFromOrder (key) {
+    delete this.state.order[key]
+    this.setState({ order: this.state.order })
   }
 
   handlePropChanged (prop, id, key) {
@@ -67,12 +81,20 @@ class App extends React.Component {
       <div className='catch-of-the-day'>
         <div className='menu'>
           <Header tagline='Fresh Seafood Market'/>
-          <FishList fishes={this.state.fishes} addToOrder={this.addToOrder.bind(this)} />
+          <FishList
+            fishes={this.state.fishes}
+            addToOrder={this.addToOrder.bind(this)}
+          />
         </div>
-        <Order order={this.state.order} fishes={this.state.fishes} />
+        <Order
+          order={this.state.order}
+          fishes={this.state.fishes}
+          removeFromOrder={this.removeFromOrder.bind(this)}
+        />
         <Inventory
           fishes={this.state.fishes}
           addFish={this.addFish.bind(this)}
+          removeFish={this.removeFish.bind(this)}
           handlePropChanged={this.handlePropChanged.bind(this)}
           loadSamples={this.loadSamples.bind(this)}
         />
@@ -181,7 +203,7 @@ const Header = ({ tagline }) => (
   Order
  */
 
-const Order = ({ fishes, order }) => {
+const Order = ({ fishes, order, removeFromOrder }) => {
   let orderIds = Object.keys(order)
   let total = orderIds.reduce((prevTotal, key) => {
     let fish = fishes[key]
@@ -194,22 +216,41 @@ const Order = ({ fishes, order }) => {
 
     return prevTotal
   }, 0)
+  let removeButton = (key) => <button onClick={removeFromOrder.bind(null, key)}>&times;</button>
 
   return (
     <div className='order-wrap'>
       <h2 className='order-title'>Your Order</h2>
-      <ul className='order'>
+      <CSSTransitionGroup
+        className='order'
+        transitionName='order'
+        component='ul'
+        transitionAppear={true}
+        transitionAppearTimeout={500}
+        transitionEnterTimeout={500}
+        transitionLeaveTimeout={500}
+      >
         {orderIds.map((key) => {
           let fish = fishes[key]
           let amount = order[key]
           let isAvailable = fish && fish.status === 'available'
           if (!fish || !isAvailable) {
-            return <li key={key}>Sorry, fish no loger available!</li>
+            return <li key={key}>Sorry, fish no loger available! {removeButton(key)}</li>
           }
 
           return (
             <li key={key}>
-              {amount} lbs {fish.name}
+              <span>
+                <CSSTransitionGroup
+                  transitionName='count'
+                  component='span'
+                  transitionEnterTimeout={250}
+                  transitionLeaveTimeout={250}
+                >
+                  <span key={amount}>{amount}</span>
+                </CSSTransitionGroup>
+                lbs {fish.name} {removeButton(key)}
+              </span>
               <span className='price'>{helpers.formatPrice(fish.price * amount)}</span>
             </li>
           )
@@ -219,14 +260,15 @@ const Order = ({ fishes, order }) => {
           <strong>Total: </strong>
           {helpers.formatPrice(total)}
         </li>
-      </ul>
+      </CSSTransitionGroup>
     </div>
   )
 }
 
 Order.propTypes = {
   order: React.PropTypes.object.isRequired,
-  fishes: React.PropTypes.object.isRequired
+  fishes: React.PropTypes.object.isRequired,
+  removeFromOrder: React.PropTypes.func.isRequired
 }
 
 /*
@@ -255,17 +297,19 @@ const Inventory = (props) => (
           <input type='text'
             value={props.fishes[key].image}
             onChange={props.handlePropChanged('fishes', key, 'image')} />
+          <button onClick={props.removeFish.bind(null, key)}>Remove Fish</button>
         </div>
       )
     })}
     <AddFishForm {...props} />
-    <button onClick={() => props.loadSamples()}>Load Sample Fishes</button>
+    <button onClick={props.loadSamples.bind(null)}>Load Sample Fishes</button>
   </div>
 )
 
 Inventory.propTypes = {
   fishes: React.PropTypes.object.isRequired,
   addFish: React.PropTypes.func.isRequired,
+  removeFish: React.PropTypes.func.isRequired,
   handlePropChanged: React.PropTypes.func.isRequired,
   loadSamples: React.PropTypes.func
 }
