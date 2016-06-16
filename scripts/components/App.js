@@ -1,5 +1,6 @@
 import React from 'react'
 import Rebase from 're-base'
+import autobind from 'autobind-decorator'
 
 import Header from './Header'
 import FishList from './FishList'
@@ -11,6 +12,7 @@ const base = Rebase.createClass('https://fk-react4beginners.firebaseio.com/')
   App
  */
 
+@autobind
 class App extends React.Component {
   constructor () {
     super()
@@ -83,20 +85,20 @@ class App extends React.Component {
           <Header tagline='Fresh Seafood Market'/>
           <FishList
             fishes={this.state.fishes}
-            addToOrder={this.addToOrder.bind(this)}
+            addToOrder={this.addToOrder}
           />
         </div>
         <Order
           order={this.state.order}
           fishes={this.state.fishes}
-          removeFromOrder={this.removeFromOrder.bind(this)}
+          removeFromOrder={this.removeFromOrder}
         />
         <Inventory
           fishes={this.state.fishes}
-          addFish={this.addFish.bind(this)}
-          removeFish={this.removeFish.bind(this)}
-          handlePropChanged={this.handlePropChanged.bind(this)}
-          loadSamples={this.loadSamples.bind(this)}
+          addFish={this.addFish}
+          removeFish={this.removeFish}
+          handlePropChanged={this.handlePropChanged}
+          loadSamples={this.loadSamples}
         />
       </div>
     )
